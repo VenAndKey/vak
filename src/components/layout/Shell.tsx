@@ -197,9 +197,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Image
               src="/logo.png"
               alt="Company Logo"
-              width={24}
-              height={24}
-              className="h-6 w-6 shrink-0 object-contain rounded-sm"
+              width={32}
+              height={32}
+              className="h-8 w-8 shrink-0 object-contain rounded-sm"
             />
             {!isCollapsed && (
               <span className="truncate text-sm lg:text-base">
