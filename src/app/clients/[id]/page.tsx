@@ -290,6 +290,47 @@ export default function ClientDetailPage({
     fetchLedger();
   };
 
+  const handleDeleteRow = async (row: LedgerRow) => {
+    if (!row.id) return;
+
+    if (row.entryType === "invoice") {
+      if (
+        !confirm(
+          "Void this invoice? It will be removed from the ledger and outstanding balance.",
+        )
+      )
+        return;
+      const reason = prompt("Enter a reason for voiding this invoice:");
+      if (!reason) return;
+
+      const res = await fetch(`/api/invoices/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "VOID", voidReason: reason }),
+      });
+      if (res.ok) {
+        fetchClientAndProjects();
+        fetchLedger();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Failed to void invoice");
+      }
+    } else if (row.entryType === "payment") {
+      if (!confirm("Delete this payment? This cannot be undone.")) return;
+
+      const res = await fetch(`/api/clients/${clientId}/payments/${row.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchClientAndProjects();
+        fetchLedger();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Failed to delete payment");
+      }
+    }
+  };
+
   const formatCurrency = (val: number) => {
     return `₹${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -411,6 +452,7 @@ export default function ClientDetailPage({
           contactPhone={client?.phone}
           shareLinkType="client_ledger"
           onEditRow={handleEditRow}
+          onDeleteRow={handleDeleteRow}
         />
       ) : (
         <div className="text-center py-10 text-muted-foreground">

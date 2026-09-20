@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -30,7 +30,12 @@ export type LedgerRow = {
   credit: number;
   runningBalance: number;
   runningValueBalance?: number;
-  entryType?: "invoice" | "payment";
+  entryType?:
+    | "invoice"
+    | "payment"
+    | "vendor_transaction"
+    | "labour_entry"
+    | "labour_payment";
 };
 
 interface LedgerTableProps {
@@ -56,6 +61,7 @@ interface LedgerTableProps {
   contactPhone?: string | null;
   shareLinkType?: "vendor_ledger" | "client_ledger" | "labour_ledger";
   onEditRow?: (row: LedgerRow) => void;
+  onDeleteRow?: (row: LedgerRow) => void;
 }
 
 export function LedgerTable({
@@ -81,6 +87,7 @@ export function LedgerTable({
   contactPhone,
   shareLinkType,
   onEditRow,
+  onDeleteRow,
 }: LedgerTableProps) {
   const [datePreset, setDatePreset] = useState("all-time");
   const [customStart, setCustomStart] = useState("");
@@ -333,6 +340,16 @@ export function LedgerTable({
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                     )}
+                    {onDeleteRow && row.id && (
+                      <button
+                        type="button"
+                        aria-label="Delete transaction"
+                        onClick={() => onDeleteRow(row)}
+                        className="p-1 rounded-md text-slate-500 hover:text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -451,7 +468,7 @@ export function LedgerTable({
               {showValueBalance && (
                 <TableHead className="text-right w-40">Value (₹)</TableHead>
               )}
-              {onEditRow && <TableHead className="w-12"></TableHead>}
+              {(onEditRow || onDeleteRow) && <TableHead className="w-20"></TableHead>}
             </TableRow>
           </TableHeader>
 
@@ -474,14 +491,14 @@ export function LedgerTable({
               {showValueBalance && (
                 <TableCell className="text-right font-mono text-slate-700"></TableCell>
               )}
-              {onEditRow && <TableCell></TableCell>}
+              {(onEditRow || onDeleteRow) && <TableCell></TableCell>}
             </TableRow>
 
             {loading ? (
               <TableRow>
                 <TableCell
                   colSpan={
-                    6 + (showValueBalance ? 1 : 0) + (onEditRow ? 1 : 0)
+                    6 + (showValueBalance ? 1 : 0) + (onEditRow || onDeleteRow ? 1 : 0)
                   }
                   className="text-center py-8 text-muted-foreground"
                 >
@@ -492,7 +509,7 @@ export function LedgerTable({
               <TableRow>
                 <TableCell
                   colSpan={
-                    6 + (showValueBalance ? 1 : 0) + (onEditRow ? 1 : 0)
+                    6 + (showValueBalance ? 1 : 0) + (onEditRow || onDeleteRow ? 1 : 0)
                   }
                   className="text-center py-8 text-muted-foreground"
                 >
@@ -528,17 +545,31 @@ export function LedgerTable({
                       )}
                     </TableCell>
                   )}
-                  {onEditRow && (
+                  {(onEditRow || onDeleteRow) && (
                     <TableCell className="text-right">
                       {row.id && (
-                        <button
-                          type="button"
-                          aria-label="Edit transaction"
-                          onClick={() => onEditRow(row)}
-                          className="p-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          {onEditRow && (
+                            <button
+                              type="button"
+                              aria-label="Edit transaction"
+                              onClick={() => onEditRow(row)}
+                              className="p-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {onDeleteRow && (
+                            <button
+                              type="button"
+                              aria-label="Delete transaction"
+                              onClick={() => onDeleteRow(row)}
+                              className="p-1 rounded-md text-slate-500 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       )}
                     </TableCell>
                   )}
@@ -564,7 +595,7 @@ export function LedgerTable({
               {showValueBalance && (
                 <TableCell className="text-right font-mono text-slate-900 border-t-2 border-slate-300 font-bold"></TableCell>
               )}
-              {onEditRow && <TableCell></TableCell>}
+              {(onEditRow || onDeleteRow) && <TableCell></TableCell>}
             </TableRow>
           </TableBody>
 
@@ -582,7 +613,7 @@ export function LedgerTable({
               </TableCell>
               <TableCell></TableCell>
               {showValueBalance && <TableCell></TableCell>}
-              {onEditRow && <TableCell></TableCell>}
+              {(onEditRow || onDeleteRow) && <TableCell></TableCell>}
             </TableRow>
           </TableFooter>
         </Table>

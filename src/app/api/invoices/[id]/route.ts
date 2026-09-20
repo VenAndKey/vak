@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { computeInvoiceStatus } from "@/lib/invoice-status";
 
 const statusPatchSchema = z.object({
   status: z.enum(["DRAFT", "SENT", "PAID", "VOID"]),
@@ -93,18 +94,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
       await tx.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
 
-      const directPayments = await tx.clientPayment.aggregate({
-        where: { invoiceId: id },
-        _sum: { amount: true },
-      });
-      const allocatedPayments = await tx.paymentAllocation.aggregate({
-        where: { invoiceId: id },
-        _sum: { allocatedAmount: true },
-      });
-      const totalPaid =
-        Number(directPayments._sum.amount || 0) + Number(allocatedPayments._sum.allocatedAmount || 0);
-
-      const nextStatus = totalPaid >= amount && totalPaid > 0 ? "PAID" : existing.status === "PAID" ? "SENT" : existing.status;
+      const nextStatus = await computeInvoiceStatus(tx, id, amount, existing.status);
 
       return tx.invoice.update({
         where: { id },
