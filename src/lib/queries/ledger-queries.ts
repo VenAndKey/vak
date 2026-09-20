@@ -334,31 +334,33 @@ export async function getClientLedgerData(
       SELECT
         invoice_number AS "voucherNumber",
         issued_date AS date,
-        COALESCE(NULLIF(notes, ''), CONCAT('Invoice raised (', invoice_number, ')')) AS description, 
-        amount AS debit, 
+        COALESCE(NULLIF(notes, ''), CONCAT('Invoice raised (', invoice_number, ')')) AS description,
+        amount AS debit,
         0 AS credit,
-        created_at, 
-        id
-      FROM invoices 
+        created_at,
+        id,
+        'invoice' AS "entryType"
+      FROM invoices
       WHERE client_id = ${clientId} AND status != 'VOID'
       ${dateFilterInvoices}
-      
+
       UNION ALL
-      
-      SELECT 
-        voucher_number AS "voucherNumber", 
+
+      SELECT
+        voucher_number AS "voucherNumber",
         payment_date AS date,
         COALESCE(NULLIF(note, ''), CASE WHEN invoice_id IS NULL THEN 'Advance payment (unallocated)' ELSE 'Payment received' END) AS description,
-        0 AS debit, 
+        0 AS debit,
         amount AS credit,
-        created_at, 
-        id
-      FROM client_payments 
+        created_at,
+        id,
+        'payment' AS "entryType"
+      FROM client_payments
       WHERE client_id = ${clientId}
       ${dateFilterPayments}
     ),
     calculated AS (
-      SELECT 
+      SELECT
         id,
         "voucherNumber",
         date,
@@ -366,6 +368,7 @@ export async function getClientLedgerData(
         debit,
         credit,
         created_at,
+        "entryType",
         ${openingBalance} + SUM(debit - credit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
       FROM combined
     )
