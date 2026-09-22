@@ -15,7 +15,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Plus, Package, Trash2 } from "lucide-react";
+import { Plus, Package, Trash2, Pencil } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -37,6 +37,74 @@ type Item = {
   unitCost: number;
 };
 
+const BASE_TYPES = ["MATERIAL", "CEMENT", "PAINT", "TOOL"];
+const TYPE_LABELS: Record<string, string> = {
+  MATERIAL: "Material",
+  CEMENT: "Cement",
+  PAINT: "Paint",
+  TOOL: "Tool",
+};
+const NEW_TYPE_OPTION = "__new__";
+
+function formatTypeLabel(type: string) {
+  return TYPE_LABELS[type] || type;
+}
+
+function ItemTypeField({
+  defaultValue,
+  knownTypes,
+}: {
+  defaultValue: string;
+  knownTypes: string[];
+}) {
+  const [customMode, setCustomMode] = useState(
+    defaultValue !== "" && !knownTypes.includes(defaultValue),
+  );
+
+  if (customMode) {
+    return (
+      <div className="space-y-1.5">
+        <input
+          name="type"
+          required
+          autoFocus
+          maxLength={50}
+          defaultValue={knownTypes.includes(defaultValue) ? "" : defaultValue}
+          placeholder="e.g. Electrical"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+        />
+        <button
+          type="button"
+          onClick={() => setCustomMode(false)}
+          className="text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2"
+        >
+          Choose from existing types
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <select
+      name="type"
+      required
+      defaultValue={defaultValue}
+      onChange={(e) => {
+        if (e.target.value === NEW_TYPE_OPTION) setCustomMode(true);
+      }}
+      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+    >
+      {!defaultValue && <option value="">Select type...</option>}
+      {knownTypes.map((t) => (
+        <option key={t} value={t}>
+          {formatTypeLabel(t)}
+        </option>
+      ))}
+      <option value={NEW_TYPE_OPTION}>+ Add new type…</option>
+    </select>
+  );
+}
+
 export default function ItemsPage() {
   const {
     data: items,
@@ -46,8 +114,15 @@ export default function ItemsPage() {
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
   const createItem = useApiMutation<Record<string, unknown>, Item>("POST");
+  const updateItem = useApiMutation<Record<string, unknown>, Item>("PATCH");
   const deactivateItem = useApiMutation<undefined, void>("DELETE");
+
+  const knownTypes = Array.from(
+    new Set([...BASE_TYPES, ...(items || []).map((i) => i.type)]),
+  );
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,6 +145,31 @@ export default function ItemsPage() {
       alert(err instanceof Error ? err.message : "Failed to save item");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleEditSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    setEditSaving(true);
+
+    const formData = new FormData(e.currentTarget);
+    const payload = {
+      name: formData.get("name"),
+      type: formData.get("type"),
+      grade: formData.get("grade") || null,
+      unit: formData.get("unit"),
+      unitCost: Number(formData.get("unitCost")),
+    };
+
+    try {
+      await updateItem.mutate(`/api/items/${editingItem.id}`, payload);
+      setEditingItem(null);
+      refetchItems();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update item");
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -113,16 +213,7 @@ export default function ItemsPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Type *</label>
-                  <select
-                    name="type"
-                    required
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  >
-                    <option value="MATERIAL">Material</option>
-                    <option value="CEMENT">Cement</option>
-                    <option value="PAINT">Paint</option>
-                    <option value="TOOL">Tool</option>
-                  </select>
+                  <ItemTypeField defaultValue="" knownTypes={knownTypes} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
@@ -204,7 +295,7 @@ export default function ItemsPage() {
                       variant="secondary"
                       className="text-xs font-medium bg-slate-100 text-slate-700"
                     >
-                      {item.type}
+                      {formatTypeLabel(item.type)}
                     </Badge>
                     {item.grade && (
                       <span className="text-xs font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
@@ -213,15 +304,26 @@ export default function ItemsPage() {
                     )}
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDeactivateTarget(item.id)}
-                  className="text-red-500 hover:text-red-600 hover:bg-red-50 h-9 w-9 p-0 border border-slate-200/70 rounded-lg shrink-0"
-                  title="Remove Item"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditingItem(item)}
+                    className="text-slate-500 hover:text-slate-700 hover:bg-slate-50 h-9 w-9 p-0 border border-slate-200/70 rounded-lg"
+                    title="Edit Item"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeactivateTarget(item.id)}
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50 h-9 w-9 p-0 border border-slate-200/70 rounded-lg"
+                    title="Remove Item"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 text-xs">
@@ -309,7 +411,7 @@ export default function ItemsPage() {
                       variant="secondary"
                       className="text-xs font-medium bg-slate-50 text-slate-700"
                     >
-                      {item.type}
+                      {formatTypeLabel(item.type)}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -331,14 +433,26 @@ export default function ItemsPage() {
                     })}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeactivateTarget(item.id)}
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50/80"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingItem(item)}
+                        className="text-slate-500 hover:text-slate-700 hover:bg-slate-100/80"
+                        title="Edit Item"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeactivateTarget(item.id)}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50/80"
+                        title="Remove Item"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -355,6 +469,97 @@ export default function ItemsPage() {
         confirmLabel="Deactivate"
         onConfirm={() => handleDeactivate(deactivateTarget!)}
       />
+
+      <Sheet
+        open={editingItem !== null}
+        onOpenChange={(open) => !open && setEditingItem(null)}
+      >
+        <SheetContent className="sm:max-w-md p-4">
+          <SheetHeader className="p-0">
+            <SheetTitle>Edit Item</SheetTitle>
+            <SheetDescription>
+              Update this item in the catalog.
+            </SheetDescription>
+          </SheetHeader>
+          {editingItem && (
+            <form
+              key={editingItem.id}
+              onSubmit={handleEditSave}
+              className="space-y-4 mt-6"
+            >
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Item Name *</label>
+                <input
+                  name="name"
+                  required
+                  defaultValue={editingItem.name}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  placeholder="e.g. River Sand"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Type *</label>
+                <ItemTypeField
+                  defaultValue={editingItem.type}
+                  knownTypes={knownTypes}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Grade (Optional)
+                </label>
+                <select
+                  name="grade"
+                  defaultValue={editingItem.grade || ""}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                >
+                  <option value="">None</option>
+                  <option value="GRADE_A">Grade A</option>
+                  <option value="GRADE_B">Grade B</option>
+                  <option value="GRADE_C">Grade C</option>
+                </select>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Unit *</label>
+                  <input
+                    name="unit"
+                    required
+                    defaultValue={editingItem.unit}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    placeholder="e.g. tonne, bag, kg"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Est. Unit Cost (₹) *
+                  </label>
+                  <input
+                    name="unitCost"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    defaultValue={editingItem.unitCost}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              <SheetFooter className="mt-6">
+                <SheetClose
+                  render={<Button variant="outline" type="button" />}
+                >
+                  Cancel
+                </SheetClose>
+                <Button type="submit" disabled={editSaving}>
+                  {editSaving ? "Saving..." : "Save Changes"}
+                </Button>
+              </SheetFooter>
+            </form>
+          )}
+        </SheetContent>
+      </Sheet>
     </PageShell>
   );
 }
