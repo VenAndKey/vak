@@ -37,6 +37,74 @@ type Item = {
   unitCost: number;
 };
 
+const BASE_TYPES = ["MATERIAL", "CEMENT", "PAINT", "TOOL"];
+const TYPE_LABELS: Record<string, string> = {
+  MATERIAL: "Material",
+  CEMENT: "Cement",
+  PAINT: "Paint",
+  TOOL: "Tool",
+};
+const NEW_TYPE_OPTION = "__new__";
+
+function formatTypeLabel(type: string) {
+  return TYPE_LABELS[type] || type;
+}
+
+function ItemTypeField({
+  defaultValue,
+  knownTypes,
+}: {
+  defaultValue: string;
+  knownTypes: string[];
+}) {
+  const [customMode, setCustomMode] = useState(
+    defaultValue !== "" && !knownTypes.includes(defaultValue),
+  );
+
+  if (customMode) {
+    return (
+      <div className="space-y-1.5">
+        <input
+          name="type"
+          required
+          autoFocus
+          maxLength={50}
+          defaultValue={knownTypes.includes(defaultValue) ? "" : defaultValue}
+          placeholder="e.g. Electrical"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+        />
+        <button
+          type="button"
+          onClick={() => setCustomMode(false)}
+          className="text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2"
+        >
+          Choose from existing types
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <select
+      name="type"
+      required
+      defaultValue={defaultValue}
+      onChange={(e) => {
+        if (e.target.value === NEW_TYPE_OPTION) setCustomMode(true);
+      }}
+      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+    >
+      {!defaultValue && <option value="">Select type...</option>}
+      {knownTypes.map((t) => (
+        <option key={t} value={t}>
+          {formatTypeLabel(t)}
+        </option>
+      ))}
+      <option value={NEW_TYPE_OPTION}>+ Add new type…</option>
+    </select>
+  );
+}
+
 export default function ItemsPage() {
   const {
     data: items,
@@ -51,6 +119,10 @@ export default function ItemsPage() {
   const createItem = useApiMutation<Record<string, unknown>, Item>("POST");
   const updateItem = useApiMutation<Record<string, unknown>, Item>("PATCH");
   const deactivateItem = useApiMutation<undefined, void>("DELETE");
+
+  const knownTypes = Array.from(
+    new Set([...BASE_TYPES, ...(items || []).map((i) => i.type)]),
+  );
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -141,16 +213,7 @@ export default function ItemsPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Type *</label>
-                  <select
-                    name="type"
-                    required
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  >
-                    <option value="MATERIAL">Material</option>
-                    <option value="CEMENT">Cement</option>
-                    <option value="PAINT">Paint</option>
-                    <option value="TOOL">Tool</option>
-                  </select>
+                  <ItemTypeField defaultValue="" knownTypes={knownTypes} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
@@ -232,7 +295,7 @@ export default function ItemsPage() {
                       variant="secondary"
                       className="text-xs font-medium bg-slate-100 text-slate-700"
                     >
-                      {item.type}
+                      {formatTypeLabel(item.type)}
                     </Badge>
                     {item.grade && (
                       <span className="text-xs font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
@@ -348,7 +411,7 @@ export default function ItemsPage() {
                       variant="secondary"
                       className="text-xs font-medium bg-slate-50 text-slate-700"
                     >
-                      {item.type}
+                      {formatTypeLabel(item.type)}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -436,17 +499,10 @@ export default function ItemsPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Type *</label>
-                <select
-                  name="type"
-                  required
+                <ItemTypeField
                   defaultValue={editingItem.type}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                >
-                  <option value="MATERIAL">Material</option>
-                  <option value="CEMENT">Cement</option>
-                  <option value="PAINT">Paint</option>
-                  <option value="TOOL">Tool</option>
-                </select>
+                  knownTypes={knownTypes}
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">
