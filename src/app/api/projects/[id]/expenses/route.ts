@@ -20,7 +20,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const id = (await params).id;
 
-    const [siteExpenses, labourEntries, allMaterials, vendorTransactions] = await Promise.all([
+    const [siteExpenses, labourEntries, materials, vendorTransactions] = await Promise.all([
       prisma.siteExpense.findMany({
         where: { projectId: id },
         orderBy: { date: 'desc' }
@@ -33,11 +33,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         },
         orderBy: { date: 'desc' }
       }),
-      prisma.projectInventory.findMany({
-        where: { projectId: id },
+      prisma.inventoryTransaction.findMany({
+        where: { projectId: id, type: { in: ['BUY', 'ISSUE', 'RETURN'] } },
         include: {
           item: { select: { name: true, unit: true, unitCost: true } }
-        }
+        },
+        orderBy: { date: 'desc' }
       }),
       prisma.vendorTransaction.findMany({
         where: { projectId: id },
@@ -47,8 +48,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         orderBy: { date: 'desc' }
       })
     ]);
-
-    const materials = allMaterials.filter(m => Number(m.qtyIssued) > 0);
 
     return NextResponse.json({
       siteExpenses,
