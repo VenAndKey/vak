@@ -19,6 +19,7 @@ const updateProjectSchema = z.object({
     .max(9999999999.99, "Budget cannot exceed ₹9,999,999,999.99")
     .optional(),
   status: z.enum(["ACTIVE", "COMPLETED", "CLOSED"]).optional(),
+  clientId: z.string().nullable().optional(),
 });
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -27,7 +28,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const project = await prisma.project.findUnique({
-      where: { id: (await params).id }
+      where: { id: (await params).id },
+      include: { client: { select: { id: true, name: true } } }
     });
 
     if (!project) return NextResponse.json({ error: "Not Found" }, { status: 404 });

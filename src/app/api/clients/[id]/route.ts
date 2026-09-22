@@ -20,6 +20,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       include: {
         invoices: {
           orderBy: { issuedDate: 'desc' }
+        },
+        projects: {
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, name: true, location: true, status: true }
         }
       }
     });
