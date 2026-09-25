@@ -394,7 +394,19 @@ interface TopUsageRawRow {
   totalValueIssued: unknown;
 }
 
-export async function getTopUsageReportData({ projectId, startDate, endDate, limit = 20 }: { projectId?: string | null, startDate?: string | null, endDate?: string | null, limit?: number }) {
+export async function getTopUsageReportData({
+  projectId,
+  startDate,
+  endDate,
+  search,
+  limit = 200,
+}: {
+  projectId?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  search?: string | null;
+  limit?: number;
+}) {
   let dateFilter = Prisma.empty;
   if (startDate && endDate) {
     dateFilter = Prisma.sql`AND date >= CAST(${startDate} as date) AND date <= CAST(${endDate} as date)`;
@@ -405,8 +417,24 @@ export async function getTopUsageReportData({ projectId, startDate, endDate, lim
   }
 
   let projectFilter = Prisma.empty;
+  let projectName: string | null = null;
   if (projectId && projectId !== "ALL") {
     projectFilter = Prisma.sql`AND project_id = ${projectId}`;
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { name: true, location: true },
+    });
+    if (project) {
+      projectName = project.location
+        ? `${project.name} (${project.location})`
+        : project.name;
+    }
+  }
+
+  let searchFilter = Prisma.empty;
+  if (search && search.trim() !== "") {
+    const searchPattern = `%${search.trim()}%`;
+    searchFilter = Prisma.sql`AND i.name ILIKE ${searchPattern}`;
   }
 
   // Only consider authentic ISSUE transactions, explicitly excluding historical transfers
@@ -423,6 +451,7 @@ export async function getTopUsageReportData({ projectId, startDate, endDate, lim
     WHERE it.type = 'ISSUE'
     ${projectFilter}
     ${dateFilter}
+    ${searchFilter}
     GROUP BY i.id, i.name, i.unit, i.unit_cost
     ORDER BY "totalValueIssued" DESC
     LIMIT ${limit}
@@ -446,10 +475,12 @@ export async function getTopUsageReportData({ projectId, startDate, endDate, lim
   });
 
   return {
+    projectName,
     rows: formattedRows,
     totalValue,
     totalItems,
     startDate,
-    endDate
+    endDate,
+    search,
   };
 }

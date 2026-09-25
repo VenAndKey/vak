@@ -401,20 +401,35 @@ export async function POST(request: Request) {
     // 7. Top Usage Report
     else if (reportType === "top_usage") {
       const data = await getTopUsageReportData({ ...params });
-      title = "Top Material Usage Report";
-      subtitle =
-        "Consumption Summary (Excluding Historical Inter-Project Transfers)";
+      title = data.projectName
+        ? `Material Usage Report: ${data.projectName}`
+        : "Material Usage & Consumption Report";
+      subtitle = data.projectName
+        ? `Project / Site: ${data.projectName}`
+        : "Consolidated across all active project sites";
+
       summaryItems = [
+        {
+          label: "Project Site",
+          value: data.projectName || "All Active Projects",
+        },
+        {
+          label: "Date Range",
+          value: dateRange || "All-time history",
+        },
+        ...(params.search
+          ? [{ label: "Search Filter", value: `"${params.search}"` }]
+          : []),
         { label: "Items Reported", value: formatNum(data.totalItems) },
         { label: "Total Consumed Value", value: formatRs(data.totalValue) },
       ];
 
       const columns: PdfColumn[] = [
         { header: "Item Name", flex: 1 },
-        { header: "Unit", width: "15%" },
+        { header: "Unit", width: "12%" },
         { header: "Avg Unit Cost", width: "20%", align: "right" },
         { header: "Total Qty Issued", width: "22%", align: "right" },
-        { header: "Total Value Issued", width: "22%", align: "right" },
+        { header: "Total Value Issued", width: "24%", align: "right" },
       ];
 
       const rows = data.rows.map((r) => [
@@ -433,8 +448,17 @@ export async function POST(request: Request) {
         formatRs(data.totalValue),
       ];
 
+      const emptyMsg = data.projectName
+        ? `No material issue transactions found for ${data.projectName}${params.search ? ` matching "${params.search}"` : ""}.`
+        : `No material issue transactions found${params.search ? ` matching "${params.search}"` : ""} for the selected period.`;
+
       children = (
-        <PdfTable columns={columns} rows={rows} footerRow={footerRow} />
+        <PdfTable
+          columns={columns}
+          rows={rows}
+          footerRow={footerRow}
+          emptyText={emptyMsg}
+        />
       );
     }
     // 8. Project Closure Report
