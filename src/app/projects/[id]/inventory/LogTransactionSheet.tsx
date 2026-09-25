@@ -11,8 +11,9 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
+
+import { ItemSelectCombobox } from "./ItemSelectCombobox";
 
 type Item = { id: string; name: string; unit: string; unitCost: number };
 
@@ -20,22 +21,25 @@ export function LogTransactionSheet({
   txnOpen,
   setTxnOpen,
   itemName,
+  setItemName,
   itemCost,
   setItemCost,
-  handleItemNameChange,
   items,
   handleLogTransaction,
   mutating,
+  disabled = false,
 }: {
   txnOpen: boolean;
   setTxnOpen: (open: boolean) => void;
   itemName: string;
+  setItemName: (val: string) => void;
   itemCost: string;
   setItemCost: (val: string) => void;
-  handleItemNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleItemNameChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   items: Item[];
   handleLogTransaction: (e: React.FormEvent<HTMLFormElement>) => void;
   mutating: boolean;
+  disabled?: boolean;
 }) {
   return (
     <Sheet open={txnOpen} onOpenChange={setTxnOpen}>
@@ -54,18 +58,18 @@ export function LogTransactionSheet({
         <form onSubmit={handleLogTransaction} className="space-y-4 mt-6">
           <div className="space-y-2">
             <label className="text-sm font-medium">Item Name *</label>
-            <Input
-              required
+            <ItemSelectCombobox
+              items={items}
               value={itemName}
-              onChange={handleItemNameChange}
-              list="items-list"
-              placeholder="Type to search or add new..."
+              onChange={(selectedName, selectedCost) => {
+                setItemName(selectedName);
+                if (selectedCost !== undefined && selectedCost > 0) {
+                  setItemCost(selectedCost.toString());
+                }
+              }}
+              placeholder="Select existing item or add new..."
+              disabled={disabled}
             />
-            <datalist id="items-list">
-              {items.map((i) => (
-                <option key={i.id} value={i.name} />
-              ))}
-            </datalist>
             <p className="text-[10px] text-muted-foreground">
               If the item doesn&apos;t exist, it will be automatically created.
             </p>
