@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 import { ReportsClient, OverviewData, CashFlowData, SaturdayData, Transaction } from "./ReportsClient";
 import { DueClient, DueContractor } from "./saturday-view/SaturdayViewClient";
 
+import { getTopUsageReportData } from "@/lib/queries/report-queries";
+
 export const dynamic = "force-dynamic";
 
 // Row shape returned by the raw labour-contractor-dues query below.
@@ -42,7 +44,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     rawSpend,
     clientPayments,
     pendingInvoices,
-    rawLabourDues
+    rawLabourDues,
+    projects,
+    initialUsageData,
   ] = await Promise.all([
     // 1. Invoices for overview
     prisma.invoice.findMany({
@@ -123,7 +127,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       WHERE c.type::text = 'LABOUR_CONTRACTOR'
         AND (COALESCE(labour.total_supplied, 0) - COALESCE(payments.total_paid, 0)) > 0
       ORDER BY (COALESCE(labour.total_supplied, 0) - COALESCE(payments.total_paid, 0)) DESC
-    `
+    `,
+    // 10. Projects list for material usage filter
+    prisma.project.findMany({
+      select: { id: true, name: true, location: true },
+      orderBy: { name: 'asc' }
+    }),
+    // 11. Initial material usage data
+    getTopUsageReportData({ limit: 100 })
   ]);
 
   // Overview calculations
@@ -258,6 +269,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       overviewData={overviewData}
       cashFlowData={cashFlowData}
       saturdayData={saturdayData}
+      projects={projects}
+      initialUsageData={initialUsageData}
     />
   );
 }

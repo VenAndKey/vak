@@ -133,6 +133,14 @@ export default function ProjectInventoryPage({
   const [currentPage, setCurrentPage] = useState(1);
   const [currentSearch, setCurrentSearch] = useState("");
 
+  const handleSetTxnOpen = (open: boolean) => {
+    if (open && selectedItem) {
+      setItemName(selectedItem.name);
+      setItemCost(selectedItem.unitCost.toString());
+    }
+    setTxnOpen(open);
+  };
+
   const fetchLedger = async (
     itemId: string,
     start = currentStart,
@@ -396,14 +404,16 @@ export default function ProjectInventoryPage({
 
           <LogTransactionSheet
             txnOpen={txnOpen}
-            setTxnOpen={setTxnOpen}
+            setTxnOpen={handleSetTxnOpen}
             itemName={itemName}
+            setItemName={setItemName}
             itemCost={itemCost}
             setItemCost={setItemCost}
             handleItemNameChange={handleItemNameChange}
             items={items}
             handleLogTransaction={handleLogTransaction}
             mutating={logTransaction.mutating}
+            disabled={!!selectedItem}
           />
         </div>
       </div>
