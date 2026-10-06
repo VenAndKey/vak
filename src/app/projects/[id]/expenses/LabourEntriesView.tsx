@@ -11,6 +11,7 @@ import {
 import { HardHat } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { LabourEntry } from "./page";
+import { usePagination, PaginationControls } from "./Pagination";
 
 export default function LabourEntriesView({
   entries,
@@ -19,6 +20,7 @@ export default function LabourEntriesView({
   entries: LabourEntry[];
   loading: boolean;
 }) {
+  const pg = usePagination(entries);
   return (
     <>
       {/* Mobile & Tablet Stacked Cards (below lg breakpoint) */}
@@ -35,7 +37,7 @@ export default function LabourEntriesView({
             />
           </div>
         ) : (
-          entries.map((l) => {
+          pg.pageItems.map((l) => {
             const spend = Number(l.headcount) * Number(l.wageRate);
             return (
               <div
@@ -135,7 +137,7 @@ export default function LabourEntriesView({
                 </TableCell>
               </TableRow>
             ) : (
-              entries.map((l) => {
+              pg.pageItems.map((l) => {
                 const spend = Number(l.headcount) * Number(l.wageRate);
                 return (
                   <TableRow key={l.id} className="hover:bg-slate-50/50">
@@ -171,6 +173,12 @@ export default function LabourEntriesView({
           </TableBody>
         </Table>
       </div>
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
     </>
   );
 }

@@ -12,6 +12,7 @@ import { Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { MaterialEntry } from "./page";
+import { usePagination, PaginationControls } from "./Pagination";
 
 const STATUS_LABEL: Record<MaterialEntry["type"], string> = {
   BUY: "Bought",
@@ -40,6 +41,7 @@ export default function MaterialsView({
   materials: MaterialEntry[];
   loading: boolean;
 }) {
+  const pg = usePagination(materials);
   return (
     <>
       {/* Mobile & Tablet Stacked Cards (below lg breakpoint) */}
@@ -56,7 +58,7 @@ export default function MaterialsView({
             />
           </div>
         ) : (
-          materials.map((m) => {
+          pg.pageItems.map((m) => {
             const value = Number(m.quantity) * Number(m.unitCost);
             return (
               <div
@@ -66,6 +68,11 @@ export default function MaterialsView({
                 <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
                   <span className="font-bold text-slate-900 text-base block wrap-break-word">
                     {m.item.name}
+                    {m.vendor && (
+                      <span className="block text-xs font-normal text-slate-500">
+                        from {m.vendor.name}
+                      </span>
+                    )}
                   </span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Badge variant="outline" className="text-xs font-semibold bg-slate-50">
@@ -146,12 +153,17 @@ export default function MaterialsView({
                 </TableCell>
               </TableRow>
             ) : (
-              materials.map((m) => {
+              pg.pageItems.map((m) => {
                 const value = Number(m.quantity) * Number(m.unitCost);
                 return (
                   <TableRow key={m.id} className="hover:bg-slate-50/50">
                     <TableCell className="font-semibold text-slate-900 whitespace-nowrap">
                       {m.item.name}
+                      {m.vendor && (
+                        <span className="block text-xs font-normal text-slate-500">
+                          from {m.vendor.name}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm text-slate-600">
                       {m.item.unit}
@@ -181,6 +193,12 @@ export default function MaterialsView({
           </TableBody>
         </Table>
       </div>
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
     </>
   );
 }

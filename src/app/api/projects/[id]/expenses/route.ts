@@ -36,14 +36,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       prisma.inventoryTransaction.findMany({
         where: { projectId: id, type: { in: ['BUY', 'ISSUE', 'RETURN'] } },
         include: {
-          item: { select: { name: true, unit: true, unitCost: true } }
+          item: { select: { name: true, unit: true, unitCost: true } },
+          vendor: { select: { name: true } }
         },
         orderBy: { date: 'desc' }
       }),
       prisma.vendorTransaction.findMany({
         where: { projectId: id },
         include: {
-          contact: { select: { name: true } }
+          contact: { select: { name: true } },
+          inventoryTransaction: { select: { voucherNumber: true } }
         },
         orderBy: { date: 'desc' }
       })

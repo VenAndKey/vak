@@ -38,6 +38,7 @@ export type MaterialEntry = {
   unitCost: number;
   date: string;
   item: { name: string; unit: string; unitCost: number };
+  vendor: { name: string } | null;
 };
 
 export type VendorTxn = {
@@ -47,6 +48,7 @@ export type VendorTxn = {
   amount: number;
   description: string | null;
   contact: { name: string };
+  inventoryTransaction: { voucherNumber: string } | null;
 };
 
 type ExpensesResponse =
@@ -128,10 +130,12 @@ export default function SiteExpensesPage({
   const totalMaterials = materials
     .filter((m) => m.type === "BUY")
     .reduce((acc, curr) => acc + Number(curr.quantity) * Number(curr.unitCost), 0);
-  const totalVendor = vendorTxns.reduce(
-    (acc, curr) => acc + Number(curr.amount),
-    0,
-  );
+  // Vendor cost = direct PURCHASE entries only. PAYMENTs settle purchases (not
+  // new cost), and purchases auto-created from an inventory BUY are already
+  // counted under materials.
+  const totalVendor = vendorTxns
+    .filter((v) => v.type === "PURCHASE" && !v.inventoryTransaction)
+    .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
   // Overall Buy-side Outflow without double counting any category
   const totalOutflow =
