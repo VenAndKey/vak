@@ -4,6 +4,15 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -29,6 +38,8 @@ import {
   ProjectOption,
   MaterialUsageData,
 } from "./MaterialUsageReportView";
+
+const TX_PAGE_SIZE = 20;
 
 export interface OverviewData {
   totalCollected: number;
@@ -82,6 +93,53 @@ export function ReportsClient({
   initialUsageData,
 }: ReportsClientProps) {
   const [currentTab, setCurrentTab] = useState(initialTab || "overview");
+  const [txPage, setTxPage] = useState(1);
+
+  const [txSearch, setTxSearch] = useState("");
+  const [txType, setTxType] = useState("ALL");
+  const [txCategory, setTxCategory] = useState("ALL");
+  const [txFrom, setTxFrom] = useState("");
+  const [txTo, setTxTo] = useState("");
+
+  const txCategories = Array.from(
+    new Set(cashFlowData.transactions.map((t) => t.category)),
+  ).sort();
+
+  const search = txSearch.trim().toLowerCase();
+  const filteredTransactions = cashFlowData.transactions.filter((t) => {
+    if (txType !== "ALL" && t.type !== txType) return false;
+    if (txCategory !== "ALL" && t.category !== txCategory) return false;
+    const day = t.date.slice(0, 10);
+    if (txFrom && day < txFrom) return false;
+    if (txTo && day > txTo) return false;
+    if (
+      search &&
+      !`${t.description} ${t.category}`.toLowerCase().includes(search)
+    )
+      return false;
+    return true;
+  });
+  const hasTxFilters =
+    txType !== "ALL" || txCategory !== "ALL" || !!txFrom || !!txTo || !!search;
+
+  const resetTxFilters = () => {
+    setTxSearch("");
+    setTxType("ALL");
+    setTxCategory("ALL");
+    setTxFrom("");
+    setTxTo("");
+    setTxPage(1);
+  };
+
+  const txTotalPages = Math.max(
+    1,
+    Math.ceil(filteredTransactions.length / TX_PAGE_SIZE),
+  );
+  const safeTxPage = Math.min(txPage, txTotalPages);
+  const pagedTransactions = filteredTransactions.slice(
+    (safeTxPage - 1) * TX_PAGE_SIZE,
+    safeTxPage * TX_PAGE_SIZE,
+  );
 
   const handleTabChange = (val: string) => {
     setCurrentTab(val);
@@ -398,15 +456,167 @@ export function ReportsClient({
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold">
-              Recent Financial Transactions
-            </h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold">
+                Recent Financial Transactions
+              </h2>
+              {hasTxFilters && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={resetTxFilters}
+                  className="h-8"
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+
+            {/* FILTERS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+              <div className="flex flex-col min-w-0 lg:col-span-2">
+                <label className="text-xs font-semibold text-muted-foreground mb-1.5">
+                  Search
+                </label>
+                <Input
+                  value={txSearch}
+                  onChange={(e) => {
+                    setTxSearch(e.target.value);
+                    setTxPage(1);
+                  }}
+                  placeholder="Search description or category"
+                  className="h-9"
+                />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <label className="text-xs font-semibold text-muted-foreground mb-1.5">
+                  Type
+                </label>
+                <Select
+                  value={txType}
+                  onValueChange={(v) => {
+                    setTxType(v ?? "ALL");
+                    setTxPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full h-9 bg-background text-sm font-normal rounded-md px-3 border border-input shadow-none">
+                    <SelectValue>
+                      {txType === "IN"
+                        ? "Money In"
+                        : txType === "OUT"
+                          ? "Money Out"
+                          : "All Types"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Types</SelectItem>
+                    <SelectItem value="IN">Money In</SelectItem>
+                    <SelectItem value="OUT">Money Out</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col min-w-0">
+                <label className="text-xs font-semibold text-muted-foreground mb-1.5">
+                  Category
+                </label>
+                <Select
+                  value={txCategory}
+                  onValueChange={(v) => {
+                    setTxCategory(v ?? "ALL");
+                    setTxPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full h-9 bg-background text-sm font-normal rounded-md px-3 border border-input shadow-none">
+                    <SelectValue>
+                      {txCategory === "ALL" ? "All Categories" : txCategory}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Categories</SelectItem>
+                    {txCategories.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col min-w-0">
+                <label className="text-xs font-semibold text-muted-foreground mb-1.5">
+                  From
+                </label>
+                <Input
+                  type="date"
+                  value={txFrom}
+                  max={txTo || undefined}
+                  onChange={(e) => {
+                    setTxFrom(e.target.value);
+                    setTxPage(1);
+                  }}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <label className="text-xs font-semibold text-muted-foreground mb-1.5">
+                  To
+                </label>
+                <Input
+                  type="date"
+                  value={txTo}
+                  min={txFrom || undefined}
+                  onChange={(e) => {
+                    setTxTo(e.target.value);
+                    setTxPage(1);
+                  }}
+                  className="h-9"
+                />
+              </div>
+            </div>
+
+            {filteredTransactions.length === 0 && (
+              <div className="text-sm text-muted-foreground text-center py-8 border rounded-md">
+                No transactions match the selected filters.
+              </div>
+            )}
 
             {/* DESKTOP VIEW: Hidden on mobile, visible on medium screens and up */}
-            <CashFlowDesktopTable transactions={cashFlowData.transactions} />
+            <CashFlowDesktopTable transactions={pagedTransactions} />
 
             {/* MOBILE VIEW: Visible on mobile, hidden on medium screens and up */}
-            <CashFlowMobileList transactions={cashFlowData.transactions} />
+            <CashFlowMobileList transactions={pagedTransactions} />
+
+            {txTotalPages > 1 && (
+              <div className="flex items-center justify-between px-3 py-3 bg-slate-50 border rounded-md text-sm">
+                <div className="text-slate-600 text-xs max-sm:text-sm">
+                  Showing page <span className="font-semibold">{safeTxPage}</span>{" "}
+                  of <span className="font-semibold">{txTotalPages}</span> (
+                  {filteredTransactions.length} total transactions)
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={safeTxPage <= 1}
+                    onClick={() => setTxPage(safeTxPage - 1)}
+                    className="h-8 max-sm:h-10 max-sm:px-4 text-xs max-sm:text-sm"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={safeTxPage >= txTotalPages}
+                    onClick={() => setTxPage(safeTxPage + 1)}
+                    className="h-8 max-sm:h-10 max-sm:px-4 text-xs max-sm:text-sm"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </TabsContent>
 
