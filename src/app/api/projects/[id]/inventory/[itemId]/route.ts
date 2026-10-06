@@ -22,10 +22,18 @@ export async function DELETE(
       return NextResponse.json({ error: "Inventory record not found" }, { status: 404 });
     }
 
-    await prisma.$transaction([
-      prisma.inventoryTransaction.deleteMany({ where: { projectId, itemId } }),
-      prisma.projectInventory.delete({ where: { id: existing.id } }),
-    ]);
+    await prisma.$transaction(async (tx) => {
+      const linked = await tx.inventoryTransaction.findMany({
+        where: { projectId, itemId, vendorTransactionId: { not: null } },
+        select: { vendorTransactionId: true },
+      });
+      await tx.inventoryTransaction.deleteMany({ where: { projectId, itemId } });
+      // Vendor ledger entries auto-created by these buys go with them.
+      await tx.vendorTransaction.deleteMany({
+        where: { id: { in: linked.map((l) => l.vendorTransactionId!) } },
+      });
+      await tx.projectInventory.delete({ where: { id: existing.id } });
+    });
 
     return NextResponse.json({ id: itemId });
   } catch (error) {

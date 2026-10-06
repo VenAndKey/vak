@@ -214,7 +214,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         amount: spend
       };
     })
-  ].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime()).slice(0, 100);
+  ].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
 
   const transactions: Transaction[] = rawTransactions.map(t => ({
     id: t.id,

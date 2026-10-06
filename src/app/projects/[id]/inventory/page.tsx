@@ -25,6 +25,7 @@ type InventoryBalance = {
   qtyTransferredOut: number;
   item: Item;
 };
+type VendorOption = { id: string; name: string; type: string };
 type ProjectOption = { id: string; name: string; status: string };
 
 // Shape returned by GET /api/projects/[id]/inventory/[itemId]/ledger — see
@@ -40,6 +41,7 @@ type InventoryLedgerRow = {
   unitCost: number;
   transferGroupId: string | null;
   linkedProjectName: string | null;
+  vendorName: string | null;
   runningQtyBalance: number;
   runningValueBalance: number;
 };
@@ -81,6 +83,12 @@ export default function ProjectInventoryPage({
   } = useApiResource<Item[]>("/api/items");
   const { data: allProjectsData, loading: projectsLoading } =
     useApiResource<ProjectOption[]>("/api/projects");
+
+  const { data: contactsData } =
+    useApiResource<VendorOption[]>("/api/contacts");
+  const vendors = (contactsData || []).filter(
+    (c) => c.type === "VENDOR" || c.type === "SHOP",
+  );
 
   const inventory = inventoryData || [];
   const items = itemsData || [];
@@ -186,6 +194,7 @@ export default function ProjectInventoryPage({
       unitCost: Number(itemCost || formData.get("unitCost")),
       date: formData.get("date"),
       note: formData.get("note") || undefined,
+      vendorId: formData.get("vendorId") || undefined,
     };
 
     try {
@@ -341,6 +350,15 @@ export default function ProjectInventoryPage({
                 {row.linkedProjectName}
               </Badge>
             )}
+          {row.vendorName && (
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-amber-50 text-amber-800"
+              title={`Vendor: ${row.vendorName}`}
+            >
+              Vendor: {row.vendorName}
+            </Badge>
+          )}
         </div>
       ),
     }));
@@ -411,6 +429,7 @@ export default function ProjectInventoryPage({
             setItemCost={setItemCost}
             handleItemNameChange={handleItemNameChange}
             items={items}
+            vendors={vendors}
             handleLogTransaction={handleLogTransaction}
             mutating={logTransaction.mutating}
             disabled={!!selectedItem}
@@ -510,6 +529,7 @@ export default function ProjectInventoryPage({
 
       <EditInventoryTransactionSheet
         projectId={projectId}
+        vendors={vendors}
         transactionId={editingTransactionId}
         open={editingTransactionId !== null}
         onOpenChange={(open) => !open && setEditingTransactionId(null)}

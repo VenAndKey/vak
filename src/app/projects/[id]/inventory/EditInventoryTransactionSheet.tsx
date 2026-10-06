@@ -14,12 +14,14 @@ import {
 
 export function EditInventoryTransactionSheet({
   projectId,
+  vendors,
   transactionId,
   open,
   onOpenChange,
   onSaved,
 }: {
   projectId: string;
+  vendors: { id: string; name: string }[];
   transactionId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -34,6 +36,7 @@ export function EditInventoryTransactionSheet({
   const [unitCost, setUnitCost] = useState("");
   const [date, setDate] = useState("");
   const [note, setNote] = useState("");
+  const [vendorId, setVendorId] = useState("");
 
   useEffect(() => {
     if (!open || !transactionId) return;
@@ -51,6 +54,7 @@ export function EditInventoryTransactionSheet({
         setUnitCost(String(txn.unitCost));
         setDate(new Date(txn.date).toISOString().split("T")[0]);
         setNote(txn.note || "");
+        setVendorId(txn.vendorId || "");
       })
       .catch(() => alert("Failed to load transaction"))
       .finally(() => setLoading(false));
@@ -73,6 +77,7 @@ export function EditInventoryTransactionSheet({
             unitCost: Number(unitCost),
             date,
             note: note || undefined,
+            vendorId: vendorId || null,
           }),
         },
       );
@@ -146,6 +151,24 @@ export function EditInventoryTransactionSheet({
                   onChange={(e) => setUnitCost(e.target.value)}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Vendor</label>
+              <select
+                value={vendorId}
+                onChange={(e) => setVendorId(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              >
+                <option value="">No vendor</option>
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground">
+                A Buy with a vendor is also added to that vendor&apos;s ledger as a purchase.
+              </p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Date *</label>

@@ -25,6 +25,7 @@ export function LogTransactionSheet({
   itemCost,
   setItemCost,
   items,
+  vendors,
   handleLogTransaction,
   mutating,
   disabled = false,
@@ -37,6 +38,7 @@ export function LogTransactionSheet({
   setItemCost: (val: string) => void;
   handleItemNameChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   items: Item[];
+  vendors: { id: string; name: string }[];
   handleLogTransaction: (e: React.FormEvent<HTMLFormElement>) => void;
   mutating: boolean;
   disabled?: boolean;
@@ -117,6 +119,24 @@ export function LogTransactionSheet({
                 placeholder="0.00"
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Vendor</label>
+            <select
+              name="vendorId"
+              defaultValue=""
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            >
+              <option value="">No vendor</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] text-muted-foreground">
+              A Buy with a vendor is also added to that vendor&apos;s ledger as a purchase.
+            </p>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Date *</label>
