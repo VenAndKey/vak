@@ -13,6 +13,7 @@ const transactionPatchSchema = z.object({
   date: z.string(),
   note: z.string().optional(),
   vendorId: z.string().min(1).nullish(),
+  paymentStatus: z.enum(["PAID", "PENDING", "OVERDUE"]).optional(),
 });
 
 // Non-transfer transactions only affect this project's own balance. Buying,
@@ -76,7 +77,7 @@ export async function PATCH(
       );
     }
 
-    const { type, quantity, unitCost, date, note } = parsed.data;
+    const { type, quantity, unitCost, date, note, paymentStatus } = parsed.data;
     const vendorId = parsed.data.vendorId ?? null;
     const oldDelta = balanceDelta(existing.type, Number(existing.quantity));
     const newDelta = balanceDelta(type, quantity);
@@ -96,7 +97,7 @@ export async function PATCH(
       if (wantsLedger && vendorTransactionId) {
         await tx.vendorTransaction.update({
           where: { id: vendorTransactionId },
-          data: { contactId: vendorId!, amount: quantity * unitCost, date: new Date(date), description },
+          data: { contactId: vendorId!, amount: quantity * unitCost, date: new Date(date), description, ...(paymentStatus && { paymentStatus }) },
         });
       } else if (wantsLedger) {
         const vtx = await tx.vendorTransaction.create({
@@ -104,6 +105,7 @@ export async function PATCH(
             contactId: vendorId!,
             projectId,
             type: "PURCHASE",
+            paymentStatus: paymentStatus ?? "PENDING",
             amount: quantity * unitCost,
             date: new Date(date),
             description,

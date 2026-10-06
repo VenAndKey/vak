@@ -195,6 +195,7 @@ export default function ProjectInventoryPage({
       date: formData.get("date"),
       note: formData.get("note") || undefined,
       vendorId: formData.get("vendorId") || undefined,
+      paymentStatus: formData.get("paymentStatus") || undefined,
     };
 
     try {

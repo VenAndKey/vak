@@ -14,6 +14,7 @@ const transactionSchema = z.object({
   date: z.string(),
   note: z.string().optional(),
   vendorId: z.string().min(1).optional(),
+  paymentStatus: z.enum(["PAID", "PENDING", "OVERDUE"]).optional(),
 });
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -53,7 +54,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
     }
 
-    const { itemName, type, quantity, unitCost, date, note, vendorId } = parsed.data;
+    const { itemName, type, quantity, unitCost, date, note, vendorId, paymentStatus } = parsed.data;
 
     // First find or create the item
     let item = await prisma.item.findFirst({
@@ -90,6 +91,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             contactId: vendorId,
             projectId,
             type: "PURCHASE",
+            paymentStatus: paymentStatus ?? "PENDING",
             amount: quantity * unitCost,
             date: new Date(date),
             description: `Inventory buy ${voucherNumber}${itemName ? ` - ${itemName}` : ""}`,

@@ -32,6 +32,7 @@ type TransactionPayload = {
   date: string | null;
   description: string | undefined;
   projectId: string | undefined;
+  paymentStatus?: string;
 };
 
 export type SuccessTxnData = TransactionPayload & {
@@ -143,6 +144,8 @@ export default function VendorLedgerPage({
       date: formData.get("date") as string | null,
       description: (formData.get("description") as string | null) || undefined,
       projectId: (formData.get("projectId") as string | null) || undefined,
+      paymentStatus:
+        (formData.get("paymentStatus") as string | null) || undefined,
     };
 
     try {

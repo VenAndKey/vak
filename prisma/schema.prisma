@@ -344,6 +344,7 @@ model VendorTransaction {
   date          DateTime              @db.Date
   description   String?               @db.Text
   notified      Boolean               @default(false)
+  paymentStatus PaymentStatus?        @map("payment_status")
   createdAt     DateTime              @default(now()) @map("created_at")
   updatedAt     DateTime              @updatedAt @map("updated_at")
 
@@ -358,6 +359,12 @@ model VendorTransaction {
 enum VendorTransactionType {
   PURCHASE
   PAYMENT
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  OVERDUE
 }
 
 model LabourPayment {
