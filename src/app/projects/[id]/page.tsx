@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProjectCostBreakdown } from "./ProjectCostBreakdown";
+import { ProjectPaymentsTable } from "./ProjectPaymentsTable";
 
 export default async function ProjectOverviewPage({
   params,
@@ -145,39 +146,13 @@ export default async function ProjectOverviewPage({
               No client payments recorded for this project yet.
             </p>
           ) : (
-            <div className="overflow-x-auto pt-4 border-t">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-muted-foreground">
-                    <th className="py-2 pr-4 font-medium">Date</th>
-                    <th className="py-2 pr-4 font-medium">Voucher No.</th>
-                    <th className="py-2 pr-4 font-medium">Particulars</th>
-                    <th className="py-2 pr-4 font-medium">Method</th>
-                    <th className="py-2 text-right font-medium">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((p) => (
-                    <tr key={p.id} className="border-t">
-                      <td className="py-2 pr-4">
-                        {new Date(p.paymentDate).toLocaleDateString()}
-                      </td>
-                      <td className="py-2 pr-4">{p.voucherNumber}</td>
-                      <td className="py-2 pr-4">
-                        {p.note ||
-                          (p.invoiceId
-                            ? "Invoice payment"
-                            : "Advance payment (unallocated)")}
-                      </td>
-                      <td className="py-2 pr-4">{p.method}</td>
-                      <td className="py-2 text-right font-mono">
-                        {inr(Number(p.amount))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ProjectPaymentsTable
+              payments={payments.map((p) => ({
+                ...p,
+                amount: Number(p.amount),
+                paymentDate: p.paymentDate.toISOString(),
+              }))}
+            />
           )}
         </CardContent>
       </Card>

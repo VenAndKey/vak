@@ -11,6 +11,7 @@ import {
 import { Receipt } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { Expense } from "./page";
+import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
 import { usePagination, PaginationControls } from "@/components/ui/pagination";
 
 export default function SiteExpensesView({
@@ -20,7 +21,8 @@ export default function SiteExpensesView({
   expenses: Expense[];
   loading: boolean;
 }) {
-  const pg = usePagination(expenses);
+  const { sorted, dir, toggle } = useDateSort(expenses, (r) => r.date);
+  const pg = usePagination(sorted);
   return (
     <>
       {/* Mobile & Tablet Stacked Cards (below lg breakpoint) */}
@@ -78,7 +80,9 @@ export default function SiteExpensesView({
         <Table className="min-w-150">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-32.5 font-semibold">Date</TableHead>
+              <TableHead className="w-32.5 font-semibold">
+                <DateSortButton dir={dir} onToggle={toggle} />
+              </TableHead>
               <TableHead className="font-semibold">Category</TableHead>
               <TableHead className="font-semibold">Description</TableHead>
               <TableHead className="text-right font-semibold">Amount</TableHead>

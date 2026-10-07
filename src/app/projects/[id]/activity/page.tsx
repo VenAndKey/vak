@@ -37,6 +37,8 @@ type Activity = {
   description: string;
 };
 
+import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
+
 export default function SiteActivityPage({
   params,
 }: {
@@ -58,7 +60,8 @@ export default function SiteActivityPage({
       new Date(a.date).toLocaleDateString(),
     ),
   );
-  const pg = usePagination(filteredActivities, undefined, search);
+  const { sorted, dir, toggle } = useDateSort(filteredActivities, (a) => a.date);
+  const pg = usePagination(sorted, undefined, `${search}|${dir}`);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const createActivity = useApiMutation<Record<string, unknown>, Activity>(
@@ -172,7 +175,9 @@ export default function SiteActivityPage({
         <Table>
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-37.5">Date</TableHead>
+              <TableHead className="w-37.5">
+                <DateSortButton dir={dir} onToggle={toggle} />
+              </TableHead>
               <TableHead>Activity Description</TableHead>
             </TableRow>
           </TableHeader>

@@ -44,6 +44,8 @@ type ExtraWork = {
   status: string;
 };
 
+import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
+
 export default function ExtraWorkPage({
   params,
 }: {
@@ -64,10 +66,11 @@ export default function ExtraWorkPage({
       (!statusFilter || w.status === statusFilter) &&
       matchesSearch(search, w.description),
   );
+  const { sorted, dir, toggle } = useDateSort(filteredWorks, (w) => w.date);
   const pg = usePagination(
-    filteredWorks,
+    sorted,
     undefined,
-    `${search}|${statusFilter}`,
+    `${search}|${statusFilter}|${dir}`,
   );
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
@@ -332,7 +335,9 @@ export default function ExtraWorkPage({
         <Table className="min-w-150">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-30">Date</TableHead>
+              <TableHead className="w-30">
+                <DateSortButton dir={dir} onToggle={toggle} />
+              </TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Amount</TableHead>

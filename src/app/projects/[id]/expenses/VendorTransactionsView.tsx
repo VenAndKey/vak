@@ -12,6 +12,7 @@ import { Store } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { VendorTxn } from "./page";
+import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
 import { usePagination, PaginationControls } from "@/components/ui/pagination";
 
 export default function VendorTransactionsView({
@@ -21,7 +22,8 @@ export default function VendorTransactionsView({
   transactions: VendorTxn[];
   loading: boolean;
 }) {
-  const pg = usePagination(transactions);
+  const { sorted, dir, toggle } = useDateSort(transactions, (r) => r.date);
+  const pg = usePagination(sorted);
   return (
     <>
       {/* Mobile & Tablet Stacked Cards (below lg breakpoint) */}
@@ -96,7 +98,9 @@ export default function VendorTransactionsView({
         <Table className="min-w-162.5">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-32.5 font-semibold">Date</TableHead>
+              <TableHead className="w-32.5 font-semibold">
+                <DateSortButton dir={dir} onToggle={toggle} />
+              </TableHead>
               <TableHead className="font-semibold">Vendor Name</TableHead>
               <TableHead className="font-semibold">Type</TableHead>
               <TableHead className="font-semibold">Description</TableHead>

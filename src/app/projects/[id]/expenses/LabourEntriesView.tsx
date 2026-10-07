@@ -11,6 +11,7 @@ import {
 import { HardHat } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { LabourEntry } from "./page";
+import { DateSortButton, useDateSort } from "@/components/ui/date-sort-button";
 import { usePagination, PaginationControls } from "@/components/ui/pagination";
 
 export default function LabourEntriesView({
@@ -20,7 +21,8 @@ export default function LabourEntriesView({
   entries: LabourEntry[];
   loading: boolean;
 }) {
-  const pg = usePagination(entries);
+  const { sorted, dir, toggle } = useDateSort(entries, (r) => r.date);
+  const pg = usePagination(sorted);
   return (
     <>
       {/* Mobile & Tablet Stacked Cards (below lg breakpoint) */}
@@ -99,7 +101,9 @@ export default function LabourEntriesView({
         <Table className="min-w-175">
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-32.5 font-semibold">Date</TableHead>
+              <TableHead className="w-32.5 font-semibold">
+                <DateSortButton dir={dir} onToggle={toggle} />
+              </TableHead>
               <TableHead className="font-semibold">
                 Worker Type / Role
               </TableHead>
