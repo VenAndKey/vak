@@ -33,7 +33,7 @@ export default function NewProjectPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [clientMode, setClientMode] = useState<"EXISTING" | "NEW">("EXISTING");
+  const [clientMode, setClientMode] = useState<"EXISTING" | "NEW">("NEW");
   const { data: rawClients } =
     useApiResource<{ id: string; name: string }[]>("/api/clients");
   const clients = Array.isArray(rawClients) ? rawClients : [];
@@ -144,18 +144,18 @@ export default function NewProjectPage() {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    checked={clientMode === "EXISTING"}
-                    onChange={() => setClientMode("EXISTING")}
-                  />
-                  Existing client
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
                     checked={clientMode === "NEW"}
                     onChange={() => setClientMode("NEW")}
                   />
                   New client
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={clientMode === "EXISTING"}
+                    onChange={() => setClientMode("EXISTING")}
+                  />
+                  Existing client
                 </label>
               </div>
               {clientMode === "EXISTING" ? (
