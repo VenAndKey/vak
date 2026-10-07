@@ -34,10 +34,10 @@ import {
 import { CashFlowDesktopTable } from "./CashFlowDesktopTable";
 import { CashFlowMobileList } from "./CashFlowMobileList";
 import {
-  MaterialUsageReportView,
+  MaterialPurchasesReportView,
   ProjectOption,
-  MaterialUsageData,
-} from "./MaterialUsageReportView";
+  MaterialPurchasesData,
+} from "./MaterialPurchasesReportView";
 
 const TX_PAGE_SIZE = 20;
 
@@ -81,7 +81,7 @@ export interface ReportsClientProps {
   cashFlowData: CashFlowData;
   saturdayData: SaturdayData;
   projects: ProjectOption[];
-  initialUsageData: MaterialUsageData;
+  initialPurchasesData: MaterialPurchasesData;
 }
 
 export function ReportsClient({
@@ -90,7 +90,7 @@ export function ReportsClient({
   cashFlowData,
   saturdayData,
   projects,
-  initialUsageData,
+  initialPurchasesData,
 }: ReportsClientProps) {
   const [currentTab, setCurrentTab] = useState(initialTab || "overview");
   const [txPage, setTxPage] = useState(1);
@@ -154,8 +154,8 @@ export function ReportsClient({
             Reports & Analytics
           </h1>
           <p className="text-muted-foreground mt-1">
-            Consolidated financial analytics, cash flow tracking, and weekly
-            settlement schedules.
+            Consolidated financial analytics, cash flow tracking, weekly
+            settlement schedules, and material purchases.
           </p>
         </div>
         <Link
@@ -221,7 +221,7 @@ export function ReportsClient({
             className="flex h-auto min-w-0 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-xs sm:text-sm font-medium leading-tight whitespace-normal text-center cursor-pointer data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-amber-700"
           >
             <Package className="h-4 w-4 shrink-0 text-amber-600" />
-            <span>Material Usage</span>
+            <span>Material Purchases</span>
           </TabsTrigger>
         </TabsList>
 
@@ -629,11 +629,11 @@ export function ReportsClient({
           />
         </TabsContent>
 
-        {/* TAB 4: USAGE REPORTS */}
+        {/* TAB 4: MATERIAL PURCHASES */}
         <TabsContent value="usage-reports" className="space-y-6">
-          <MaterialUsageReportView
+          <MaterialPurchasesReportView
             projects={projects}
-            initialData={initialUsageData}
+            initialData={initialPurchasesData}
           />
         </TabsContent>
       </Tabs>
