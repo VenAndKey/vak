@@ -130,16 +130,21 @@ export default function SiteExpensesPage({
   const totalMaterials = materials
     .filter((m) => m.type === "BUY")
     .reduce((acc, curr) => acc + Number(curr.quantity) * Number(curr.unitCost), 0);
-  // Vendor cost = direct PURCHASE entries only. PAYMENTs settle purchases (not
-  // new cost), and purchases auto-created from an inventory BUY are already
-  // counted under materials.
+  // Vendor payments card = every PURCHASE billed by a vendor, including those
+  // auto-created from an inventory BUY with a vendor. PAYMENTs settle
+  // purchases (not new cost).
   const totalVendor = vendorTxns
+    .filter((v) => v.type === "PURCHASE")
+    .reduce((acc, curr) => acc + Number(curr.amount), 0);
+  // Inventory-linked purchases are already counted under materials, so the
+  // overall outflow only adds the direct ones.
+  const totalDirectVendor = vendorTxns
     .filter((v) => v.type === "PURCHASE" && !v.inventoryTransaction)
     .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
   // Overall Buy-side Outflow without double counting any category
   const totalOutflow =
-    totalPettyCash + totalLabour + totalMaterials + totalVendor;
+    totalPettyCash + totalLabour + totalMaterials + totalDirectVendor;
 
   return (
     <div className="p-2 md:p-4 max-w-7xl mx-auto space-y-6">

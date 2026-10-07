@@ -113,10 +113,11 @@ export default function MaterialsView({
 
       {/* Desktop Table View (lg breakpoint and above) */}
       <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-        <Table className="min-w-162.5">
+        <Table className="min-w-175">
           <TableHeader className="bg-slate-50">
             <TableRow>
               <TableHead className="w-55 font-semibold">Item Name</TableHead>
+              <TableHead className="font-semibold">Vendor</TableHead>
               <TableHead className="font-semibold">Unit</TableHead>
               <TableHead className="text-right font-semibold">
                 Quantity
@@ -134,7 +135,7 @@ export default function MaterialsView({
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="text-center py-10 text-muted-foreground"
                 >
                   Loading inventory...
@@ -142,7 +143,7 @@ export default function MaterialsView({
               </TableRow>
             ) : materials.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10">
+                <TableCell colSpan={7} className="text-center py-10">
                   <EmptyState
                     icon={Package}
                     message="No material transactions logged for this site yet."
@@ -159,11 +160,9 @@ export default function MaterialsView({
                   <TableRow key={m.id} className="hover:bg-slate-50/50">
                     <TableCell className="font-semibold text-slate-900 whitespace-nowrap">
                       {m.item.name}
-                      {m.vendor && (
-                        <span className="block text-xs font-normal text-slate-500">
-                          from {m.vendor.name}
-                        </span>
-                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-700">
+                      {m.vendor?.name ?? "—"}
                     </TableCell>
                     <TableCell className="text-sm text-slate-600">
                       {m.item.unit}
