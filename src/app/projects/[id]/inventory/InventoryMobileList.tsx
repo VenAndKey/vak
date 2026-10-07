@@ -13,6 +13,7 @@ type InventoryBalance = {
   qtyReturned: number;
   qtyTransferredIn: number;
   qtyTransferredOut: number;
+  vendorNames?: string[];
   item: Item;
 };
 
@@ -62,8 +63,17 @@ export function InventoryMobileList({
                     {inv.item.name}
                   </span>
                   <span className="text-xs text-slate-500 font-medium block">
-                    Unit: {inv.item.unit}
+                    Unit: {inv.item.unit} · ₹
+                    {Number(inv.item.unitCost).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </span>
+                  {!!inv.vendorNames?.length && (
+                    <span className="text-xs text-slate-500 font-medium block">
+                      Vendor: {inv.vendorNames.join(", ")}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <Badge

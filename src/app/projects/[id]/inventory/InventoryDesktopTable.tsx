@@ -21,6 +21,7 @@ type InventoryBalance = {
   qtyReturned: number;
   qtyTransferredIn: number;
   qtyTransferredOut: number;
+  vendorNames?: string[];
   item: Item;
 };
 
@@ -40,10 +41,12 @@ export function InventoryDesktopTable({
   const showActions = !!(onEditItem || onDeleteItem);
   return (
     <div className="hidden lg:block border rounded-xl bg-white shadow-sm overflow-hidden">
-      <Table className="min-w-[650px]">
+      <Table className="min-w-[800px]">
         <TableHeader className="bg-slate-50">
           <TableRow>
             <TableHead className="w-[200px]">Item Name</TableHead>
+            <TableHead>Vendor</TableHead>
+            <TableHead className="text-right">Price (₹)</TableHead>
             <TableHead className="text-right">Total Bought</TableHead>
             <TableHead className="text-right">Total Issued</TableHead>
             <TableHead className="text-right">Total Returned</TableHead>
@@ -55,7 +58,7 @@ export function InventoryDesktopTable({
           {loading ? (
             <TableRow>
               <TableCell
-                colSpan={showActions ? 6 : 5}
+                colSpan={showActions ? 8 : 7}
                 className="text-center py-10 text-muted-foreground"
               >
                 Loading inventory...
@@ -63,7 +66,7 @@ export function InventoryDesktopTable({
             </TableRow>
           ) : inventory.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={showActions ? 6 : 5} className="text-center py-10">
+              <TableCell colSpan={showActions ? 8 : 7} className="text-center py-10">
                 <EmptyState
                   icon={PackageOpen}
                   message="No inventory logged for this site."
@@ -94,6 +97,15 @@ export function InventoryDesktopTable({
                     <span className="text-xs text-muted-foreground">
                       ({inv.item.unit})
                     </span>
+                  </TableCell>
+                  <TableCell className="text-sm text-slate-700">
+                    {inv.vendorNames?.length ? inv.vendorNames.join(", ") : "—"}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {Number(inv.item.unitCost).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </TableCell>
                   <TableCell className="text-right text-green-600 font-mono">
                     +{Number(inv.qtyBought).toLocaleString()}

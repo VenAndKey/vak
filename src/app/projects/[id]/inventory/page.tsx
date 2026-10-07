@@ -29,6 +29,7 @@ type InventoryBalance = {
   qtyReturned: number;
   qtyTransferredIn: number;
   qtyTransferredOut: number;
+  vendorNames?: string[];
   item: Item;
 };
 type VendorOption = { id: string; name: string; type: string };
@@ -538,6 +539,8 @@ export default function ProjectInventoryPage({
       )}
 
       <EditInventoryItemSheet
+        projectId={projectId}
+        vendors={vendors}
         item={editingItem?.item || null}
         open={editingItem !== null}
         onOpenChange={(open) => !open && setEditingItem(null)}

@@ -33,7 +33,24 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       orderBy: { item: { name: 'asc' } }
     });
 
-    return NextResponse.json(inventory);
+    // Distinct vendors this project bought each item from.
+    const buys = await prisma.inventoryTransaction.findMany({
+      where: { projectId, type: "BUY", vendorId: { not: null } },
+      select: { itemId: true, vendor: { select: { name: true } } },
+    });
+    const vendorsByItem = new Map<string, Set<string>>();
+    for (const b of buys) {
+      if (!b.vendor) continue;
+      if (!vendorsByItem.has(b.itemId)) vendorsByItem.set(b.itemId, new Set());
+      vendorsByItem.get(b.itemId)!.add(b.vendor.name);
+    }
+
+    return NextResponse.json(
+      inventory.map((inv) => ({
+        ...inv,
+        vendorNames: [...(vendorsByItem.get(inv.itemId) ?? [])],
+      })),
+    );
   } catch {
     return NextResponse.json({ error: "Failed to fetch inventory" }, { status: 500 });
   }
