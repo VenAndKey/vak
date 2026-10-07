@@ -9,7 +9,6 @@ import {
   Users,
   HardHat,
   // IndianRupee,
-  Package,
   Menu,
   FileText,
   Hammer,
@@ -28,7 +27,6 @@ import Image from "next/image";
 const navigation = [
   { name: "Projects", href: "/projects", icon: Building2 },
   { name: "Labour", href: "/labour", icon: HardHat },
-  { name: "Master Items", href: "/items", icon: Package },
   { name: "Vendors", href: "/vendors", icon: Users },
   { name: "Clients", href: "/clients", icon: Users },
   // { name: "Receivables", href: "/invoices", icon: IndianRupee },
