@@ -72,7 +72,7 @@ export function InvoicesDesktopTable({
               <TableCell colSpan={8} className="text-center py-12">
                 <EmptyState
                   icon={ReceiptIndianRupee}
-                  message="No invoices generated yet."
+                  message="No invoices found."
                   variant="cell"
                 />
               </TableCell>

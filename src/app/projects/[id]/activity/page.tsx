@@ -24,6 +24,12 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import Link from "next/link";
+import {
+  usePagination,
+  PaginationControls,
+  SearchInput,
+  matchesSearch,
+} from "@/components/ui/pagination";
 
 type Activity = {
   id: string;
@@ -44,6 +50,15 @@ export default function SiteActivityPage({
     loading,
     refetch,
   } = useApiResource<Activity[]>(`/api/projects/${projectId}/activity`);
+  const [search, setSearch] = useState("");
+  const filteredActivities = (activities || []).filter((a) =>
+    matchesSearch(
+      search,
+      a.description,
+      new Date(a.date).toLocaleDateString(),
+    ),
+  );
+  const pg = usePagination(filteredActivities, undefined, search);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const createActivity = useApiMutation<Record<string, unknown>, Activity>(
@@ -147,6 +162,12 @@ export default function SiteActivityPage({
         </Sheet>
       </div>
 
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Search activity..."
+      />
+
       <div className="border rounded-md bg-white shadow-sm overflow-hidden">
         <Table>
           <TableHeader className="bg-slate-50">
@@ -165,12 +186,16 @@ export default function SiteActivityPage({
                   Loading activity logs...
                 </TableCell>
               </TableRow>
-            ) : (activities || []).length === 0 ? (
+            ) : filteredActivities.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center py-10">
                   <EmptyState
                     icon={NotepadText}
-                    message="No activities recorded yet."
+                    message={
+                      search
+                        ? "No activities match your search."
+                        : "No activities recorded yet."
+                    }
                     messageClassName="text-muted-foreground"
                     variant="cell"
                     compact
@@ -178,7 +203,7 @@ export default function SiteActivityPage({
                 </TableCell>
               </TableRow>
             ) : (
-              (activities || []).map((act) => (
+              pg.pageItems.map((act) => (
                 <TableRow key={act.id} className="hover:bg-slate-50/50">
                   <TableCell className="font-medium align-top">
                     {new Date(act.date).toLocaleDateString()}
@@ -192,6 +217,13 @@ export default function SiteActivityPage({
           </TableBody>
         </Table>
       </div>
+
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
     </div>
   );
 }

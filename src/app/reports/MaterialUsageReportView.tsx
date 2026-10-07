@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import { usePagination, PaginationControls } from "@/components/ui/pagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -157,6 +158,8 @@ export function MaterialUsageReportView({
 
   // Local rows from usageData
   const filteredRows = usageData.rows;
+  const pg = usePagination(filteredRows, undefined, usageData);
+  const pageOffset = (pg.page - 1) * 10;
 
   // Highest consumption item
   const topItem = usageData.rows.length > 0 ? usageData.rows[0] : null;
@@ -446,7 +449,7 @@ export function MaterialUsageReportView({
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredRows.map((row, idx) => {
+                pg.pageItems.map((row, idx) => {
                   const percentage =
                     usageData.totalValue > 0
                       ? (row.totalValueIssued / usageData.totalValue) * 100
@@ -455,7 +458,7 @@ export function MaterialUsageReportView({
                   return (
                     <TableRow key={row.itemId || idx}>
                       <TableCell className="text-center text-xs font-mono text-muted-foreground">
-                        {idx + 1}
+                        {pageOffset + idx + 1}
                       </TableCell>
                       <TableCell className="font-medium text-foreground">
                         {row.itemName}
@@ -515,6 +518,13 @@ export function MaterialUsageReportView({
           </Table>
         </CardContent>
       </Card>
+
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { Store } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { VendorTxn } from "./page";
-import { usePagination, PaginationControls } from "./Pagination";
+import { usePagination, PaginationControls } from "@/components/ui/pagination";
 
 export default function VendorTransactionsView({
   transactions,

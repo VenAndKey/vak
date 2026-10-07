@@ -11,7 +11,7 @@ import {
 import { HardHat } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { LabourEntry } from "./page";
-import { usePagination, PaginationControls } from "./Pagination";
+import { usePagination, PaginationControls } from "@/components/ui/pagination";
 
 export default function LabourEntriesView({
   entries,

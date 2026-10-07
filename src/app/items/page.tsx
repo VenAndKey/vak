@@ -1,7 +1,16 @@
 "use client";
 
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useApiResource, useApiMutation } from "@/hooks/useApiResource";
+import {
+  usePagination,
+  PaginationControls,
+  SearchInput,
+  FilterSelect,
+  FilterBar,
+  matchesSearch,
+} from "@/components/ui/pagination";
 import {
   Table,
   TableBody,
@@ -85,14 +94,13 @@ function ItemTypeField({
   }
 
   return (
-    <select
+    <NativeSelect
       name="type"
       required
       defaultValue={defaultValue}
       onChange={(e) => {
         if (e.target.value === NEW_TYPE_OPTION) setCustomMode(true);
       }}
-      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
     >
       {!defaultValue && <option value="">Select type...</option>}
       {knownTypes.map((t) => (
@@ -101,7 +109,7 @@ function ItemTypeField({
         </option>
       ))}
       <option value={NEW_TYPE_OPTION}>+ Add new type…</option>
-    </select>
+    </NativeSelect>
   );
 }
 
@@ -123,6 +131,19 @@ export default function ItemsPage() {
   const knownTypes = Array.from(
     new Set([...BASE_TYPES, ...(items || []).map((i) => i.type)]),
   );
+
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const filteredItems = (items || []).filter(
+    (i) =>
+      (!typeFilter || i.type === typeFilter) &&
+      matchesSearch(search, i.name, i.grade, i.type, i.unit),
+  );
+  const pg = usePagination(filteredItems, undefined, `${search}|${typeFilter}`);
+  const emptyMessage =
+    search || typeFilter
+      ? "No items match your filters."
+      : "No items in the catalog yet.";
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -219,15 +240,14 @@ export default function ItemsPage() {
                   <label className="text-sm font-medium">
                     Grade (Optional)
                   </label>
-                  <select
+                  <NativeSelect
                     name="grade"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                   >
                     <option value="">None</option>
                     <option value="GRADE_A">Grade A</option>
                     <option value="GRADE_B">Grade B</option>
                     <option value="GRADE_C">Grade C</option>
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -269,18 +289,35 @@ export default function ItemsPage() {
         }
       />
 
+      <FilterBar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by name, grade or unit..."
+        />
+        <FilterSelect
+          value={typeFilter}
+          onChange={setTypeFilter}
+          allLabel="All types"
+          options={knownTypes.map((t) => ({
+            value: t,
+            label: formatTypeLabel(t),
+          }))}
+        />
+      </FilterBar>
+
       {/* Mobile & Tablet Stacked Cards View (below lg breakpoint) */}
       <div className="lg:hidden space-y-3.5">
         {loading ? (
           <div className="text-center py-12 text-muted-foreground text-sm border rounded-xl bg-white shadow-sm">
             Loading items...
           </div>
-        ) : (items || []).length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <div className="text-center py-12 border rounded-xl bg-white shadow-sm">
-            <EmptyState icon={Package} message="No items in the catalog yet." />
+            <EmptyState icon={Package} message={emptyMessage} />
           </div>
         ) : (
-          (items || []).map((item) => (
+          pg.pageItems.map((item) => (
             <div
               key={item.id}
               className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
@@ -387,18 +424,18 @@ export default function ItemsPage() {
                   Loading items...
                 </TableCell>
               </TableRow>
-            ) : (items || []).length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-14">
                   <EmptyState
                     icon={Package}
-                    message="No items in the catalog yet."
+                    message={emptyMessage}
                     variant="cell"
                   />
                 </TableCell>
               </TableRow>
             ) : (
-              (items || []).map((item) => (
+              pg.pageItems.map((item) => (
                 <TableRow
                   key={item.id}
                   className="hover:bg-slate-50/60 transition-colors"
@@ -461,6 +498,13 @@ export default function ItemsPage() {
         </Table>
       </div>
 
+      <PaginationControls
+        page={pg.page}
+        totalPages={pg.totalPages}
+        total={pg.total}
+        onPageChange={pg.setPage}
+      />
+
       <ConfirmDialog
         open={deactivateTarget !== null}
         onOpenChange={(open) => !open && setDeactivateTarget(null)}
@@ -508,16 +552,15 @@ export default function ItemsPage() {
                 <label className="text-sm font-medium">
                   Grade (Optional)
                 </label>
-                <select
+                <NativeSelect
                   name="grade"
                   defaultValue={editingItem.grade || ""}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                 >
                   <option value="">None</option>
                   <option value="GRADE_A">Grade A</option>
                   <option value="GRADE_B">Grade B</option>
                   <option value="GRADE_C">Grade C</option>
-                </select>
+                </NativeSelect>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">

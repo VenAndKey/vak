@@ -11,7 +11,7 @@ import {
 import { Receipt } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { Expense } from "./page";
-import { usePagination, PaginationControls } from "./Pagination";
+import { usePagination, PaginationControls } from "@/components/ui/pagination";
 
 export default function SiteExpensesView({
   expenses,

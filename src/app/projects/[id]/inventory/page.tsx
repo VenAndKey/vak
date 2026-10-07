@@ -11,6 +11,12 @@ import { TransferStockSheet } from "./TransferStockSheet";
 import { LogTransactionSheet } from "./LogTransactionSheet";
 import { EditInventoryItemSheet } from "./EditInventoryItemSheet";
 import { EditInventoryTransactionSheet } from "./EditInventoryTransactionSheet";
+import {
+  usePagination,
+  PaginationControls,
+  SearchInput,
+  matchesSearch,
+} from "@/components/ui/pagination";
 import { InventoryMobileList } from "./InventoryMobileList";
 import { InventoryDesktopTable } from "./InventoryDesktopTable";
 
@@ -91,6 +97,15 @@ export default function ProjectInventoryPage({
   );
 
   const inventory = inventoryData || [];
+  const [inventorySearch, setInventorySearch] = useState("");
+  const filteredInventory = inventory.filter((inv) =>
+    matchesSearch(inventorySearch, inv.item.name, inv.item.unit),
+  );
+  const inventoryPg = usePagination(
+    filteredInventory,
+    undefined,
+    inventorySearch,
+  );
   const items = itemsData || [];
   const projects = (allProjectsData || []).filter(
     (p) => p.id !== projectId && p.status === "ACTIVE",
@@ -491,8 +506,14 @@ export default function ProjectInventoryPage({
         </div>
       ) : (
         <>
+          <SearchInput
+            value={inventorySearch}
+            onChange={setInventorySearch}
+            placeholder="Search items..."
+          />
+
           <InventoryMobileList
-            inventory={inventory}
+            inventory={inventoryPg.pageItems}
             loading={loading}
             onSelectItem={handleSelectItem}
             onEditItem={setEditingItem}
@@ -500,11 +521,18 @@ export default function ProjectInventoryPage({
           />
 
           <InventoryDesktopTable
-            inventory={inventory}
+            inventory={inventoryPg.pageItems}
             loading={loading}
             onSelectItem={handleSelectItem}
             onEditItem={setEditingItem}
             onDeleteItem={setDeleteTarget}
+          />
+
+          <PaginationControls
+            page={inventoryPg.page}
+            totalPages={inventoryPg.totalPages}
+            total={inventoryPg.total}
+            onPageChange={inventoryPg.setPage}
           />
         </>
       )}
