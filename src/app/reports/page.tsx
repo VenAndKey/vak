@@ -36,7 +36,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   // Execute all database queries concurrently
   const [
-    invoices,
     vendorTxns,
     siteExpenses,
     labourEntries,
@@ -48,10 +47,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     projects,
     initialUsageData,
   ] = await Promise.all([
-    // 1. Invoices for overview
-    prisma.invoice.findMany({
-      include: { clientPayments: true, paymentAllocations: true }
-    }),
     // 2. Vendor Transactions for overview & cash flow
     prisma.vendorTransaction.findMany({
       include: { contact: { select: { name: true } } },
@@ -138,9 +133,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   ]);
 
   // Overview calculations
-  const totalCollected = invoices.reduce((sum, inv) => 
-    sum + inv.clientPayments.reduce((pSum, p) => pSum + Number(p.amount), 0) + inv.paymentAllocations.reduce((pSum, p) => pSum + Number(p.allocatedAmount), 0)
-  , 0);
+  // Sum every recorded client payment (incl. unallocated advances), matching the client ledger's "Received" total
+  const totalCollected = clientPayments.reduce((sum, p) => sum + Number(p.amount), 0);
 
   const vendorPurchases = vendorTxns.filter(t => t.type === "PURCHASE").reduce((sum, t) => sum + Number(t.amount), 0);
   const vendorPayments = vendorTxns.filter(t => t.type === "PAYMENT").reduce((sum, t) => sum + Number(t.amount), 0);
@@ -153,7 +147,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   const overviewData: OverviewData = {
     totalCollected,
-    invoicesCount: invoices.length,
+    paymentsCount: clientPayments.length,
     vendorPayments,
     vendorPurchases,
     totalExpenses,

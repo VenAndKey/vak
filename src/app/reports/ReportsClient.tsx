@@ -43,7 +43,7 @@ const TX_PAGE_SIZE = 20;
 
 export interface OverviewData {
   totalCollected: number;
-  invoicesCount: number;
+  paymentsCount: number;
   vendorPayments: number;
   vendorPurchases: number;
   totalExpenses: number;
@@ -241,7 +241,7 @@ export function ReportsClient({
                     ₹{overviewData.totalCollected.toLocaleString()}
                   </div>
                   <p className="text-xs text-green-600/80">
-                    From {overviewData.invoicesCount} invoices
+                    From {overviewData.paymentsCount} payments
                   </p>
                 </CardContent>
               </Card>
