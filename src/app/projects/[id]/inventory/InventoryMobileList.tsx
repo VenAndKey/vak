@@ -144,6 +144,20 @@ export function InventoryMobileList({
                   </span>
                 </div>
               </div>
+              <div className="flex items-center justify-between text-xs border-t border-slate-100 pt-2.5">
+                <span className="text-slate-500 text-[10px] uppercase font-semibold">
+                  Total Cost
+                </span>
+                <span className="font-mono font-bold text-sm text-slate-900">
+                  ₹
+                  {(
+                    Number(inv.qtyBought) * Number(inv.item.unitCost)
+                  ).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
             </div>
           );
         })
