@@ -113,7 +113,7 @@ export default function VendorLedgerPage({
     if (end) query.append("endDate", end);
     if (search) query.append("search", search);
     query.append("page", p.toString());
-    query.append("limit", "50");
+    query.append("limit", "20");
     url += `?${query.toString()}`;
 
     const res = await fetch(url);
