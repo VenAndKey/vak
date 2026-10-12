@@ -14,7 +14,18 @@ const createProjectSchema = z.object({
     .max(9999999999.99, "Budget cannot exceed ₹9,999,999,999.99")
     .optional(),
   startDate: z.string().optional(),
-  endDate: z.string().optional()
+  endDate: z.string().optional(),
+  clientId: z.string().min(1).optional(),
+  newClient: z
+    .object({
+      name: z.string().trim().min(1, "Client name is required"),
+      phone: z.string().trim().optional(),
+      address: z.string().trim().optional()
+    })
+    .optional()
+}).refine((d) => !!d.clientId !== !!d.newClient, {
+  message: "Provide either an existing client or new client details",
+  path: ["clientId"]
 });
 
 export async function GET() {
@@ -45,19 +56,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
     }
 
-    const { name, location, description, budget, startDate, endDate } = parsed.data;
+    const { name, location, description, budget, startDate, endDate, clientId, newClient } = parsed.data;
 
-    const project = await prisma.project.create({
-      data: {
-        name,
-        location,
-        notes: description,
+    if (clientId) {
+      const exists = await prisma.client.findUnique({ where: { id: clientId }, select: { id: true } });
+      if (!exists) return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
 
-        startDate: startDate ? new Date(startDate) : new Date(),
-        endDate: endDate ? new Date(endDate) : undefined,
-        status: "ACTIVE",
-        agreedValue: budget ? parseFloat(budget.toString()) : 0,
-      }
+    const project = await prisma.$transaction(async (tx) => {
+      const resolvedClientId =
+        clientId ??
+        (
+          await tx.client.create({
+            data: {
+              name: newClient!.name,
+              phone: newClient!.phone || null,
+              address: newClient!.address || null
+            }
+          })
+        ).id;
+
+      return tx.project.create({
+        data: {
+          clientId: resolvedClientId,
+          name,
+          location,
+          notes: description,
+
+          startDate: startDate ? new Date(startDate) : new Date(),
+          endDate: endDate ? new Date(endDate) : undefined,
+          status: "ACTIVE",
+          agreedValue: budget ? parseFloat(budget.toString()) : 0,
+        }
+      });
     });
 
     // Staff assignment logic has been removed as part of Daily Labour migration

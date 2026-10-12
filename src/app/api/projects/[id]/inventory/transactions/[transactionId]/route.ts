@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ensureProjectActive } from "@/lib/project-utils";
+import { nextVoucherNumber } from "@/lib/voucher";
 import { z } from "zod";
 
 const transactionPatchSchema = z.object({
@@ -11,6 +12,8 @@ const transactionPatchSchema = z.object({
   unitCost: z.coerce.number().min(0),
   date: z.string(),
   note: z.string().optional(),
+  vendorId: z.string().min(1).nullish(),
+  paymentStatus: z.enum(["PAID", "PENDING", "OVERDUE"]).optional(),
 });
 
 // Non-transfer transactions only affect this project's own balance. Buying,
@@ -74,24 +77,66 @@ export async function PATCH(
       );
     }
 
-    const { type, quantity, unitCost, date, note } = parsed.data;
+    const { type, quantity, unitCost, date, note, paymentStatus } = parsed.data;
+    const vendorId = parsed.data.vendorId ?? null;
     const oldDelta = balanceDelta(existing.type, Number(existing.quantity));
     const newDelta = balanceDelta(type, quantity);
 
-    const [updated] = await prisma.$transaction([
-      prisma.inventoryTransaction.update({
+    if (vendorId) {
+      const vendor = await prisma.contact.findUnique({ where: { id: vendorId }, select: { id: true } });
+      if (!vendor) return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      // Keep the vendor ledger entry in step: only a BUY with a vendor has one.
+      let vendorTransactionId = existing.vendorTransactionId;
+      const wantsLedger = type === "BUY" && !!vendorId;
+      const item = await tx.item.findUnique({ where: { id: existing.itemId }, select: { name: true } });
+      const description = `Inventory buy ${existing.voucherNumber}${item ? ` - ${item.name}` : ""}`;
+
+      if (wantsLedger && vendorTransactionId) {
+        await tx.vendorTransaction.update({
+          where: { id: vendorTransactionId },
+          data: { contactId: vendorId!, amount: quantity * unitCost, date: new Date(date), description, ...(paymentStatus && { paymentStatus }) },
+        });
+      } else if (wantsLedger) {
+        const vtx = await tx.vendorTransaction.create({
+          data: {
+            contactId: vendorId!,
+            projectId,
+            type: "PURCHASE",
+            paymentStatus: paymentStatus ?? "PENDING",
+            amount: quantity * unitCost,
+            date: new Date(date),
+            description,
+            voucherNumber: await nextVoucherNumber(tx, 'PUR', 'VENDOR_PUR'),
+          },
+        });
+        vendorTransactionId = vtx.id;
+      }
+
+      const txn = await tx.inventoryTransaction.update({
         where: { id: transactionId },
-        data: { type, quantity, unitCost, date: new Date(date), note },
-      }),
-      prisma.projectInventory.update({
+        data: {
+          type, quantity, unitCost, date: new Date(date), note, vendorId,
+          vendorTransactionId: wantsLedger ? vendorTransactionId : null,
+        },
+      });
+
+      if (!wantsLedger && vendorTransactionId) {
+        await tx.vendorTransaction.delete({ where: { id: vendorTransactionId } });
+      }
+
+      await tx.projectInventory.update({
         where: { projectId_itemId: { projectId, itemId: existing.itemId } },
         data: {
           qtyBought: { increment: newDelta.qtyBought - oldDelta.qtyBought },
           qtyIssued: { increment: newDelta.qtyIssued - oldDelta.qtyIssued },
           qtyReturned: { increment: newDelta.qtyReturned - oldDelta.qtyReturned },
         },
-      }),
-    ]);
+      });
+      return txn;
+    });
 
     return NextResponse.json(updated);
   } catch (error) {
@@ -127,17 +172,20 @@ export async function DELETE(
 
     const delta = balanceDelta(existing.type, Number(existing.quantity));
 
-    await prisma.$transaction([
-      prisma.inventoryTransaction.delete({ where: { id: transactionId } }),
-      prisma.projectInventory.update({
+    await prisma.$transaction(async (tx) => {
+      await tx.inventoryTransaction.delete({ where: { id: transactionId } });
+      if (existing.vendorTransactionId) {
+        await tx.vendorTransaction.delete({ where: { id: existing.vendorTransactionId } });
+      }
+      await tx.projectInventory.update({
         where: { projectId_itemId: { projectId, itemId: existing.itemId } },
         data: {
           qtyBought: { increment: -delta.qtyBought },
           qtyIssued: { increment: -delta.qtyIssued },
           qtyReturned: { increment: -delta.qtyReturned },
         },
-      }),
-    ]);
+      });
+    });
 
     return NextResponse.json({ id: transactionId });
   } catch (error) {

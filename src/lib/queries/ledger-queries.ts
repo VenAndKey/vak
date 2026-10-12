@@ -21,6 +21,7 @@ interface InventoryLedgerRawRow {
   unitCost: unknown;
   transferGroupId: string | null;
   linkedProjectName: string | null;
+  vendorName: string | null;
   created_at: unknown;
   runningQtyBalance: unknown;
   runningValueBalance: unknown;
@@ -104,7 +105,8 @@ export async function getVendorLedgerData(
           0::float as debit,
           (dle.headcount * dle.wage_rate)::float as credit,
           dle.created_at,
-          'labour_entry' AS "entryType"
+          'labour_entry' AS "entryType",
+          NULL::text AS "paymentStatus"
         FROM daily_labour_entries dle
         LEFT JOIN worker_types wt ON dle.worker_type_id = wt.id
         WHERE dle.contractor_id = ${contactId} AND dle.paid_immediately = false
@@ -120,7 +122,8 @@ export async function getVendorLedgerData(
           amount::float as debit,
           0::float as credit,
           created_at,
-          'labour_payment' AS "entryType"
+          'labour_payment' AS "entryType",
+          NULL::text AS "paymentStatus"
         FROM labour_payments
         WHERE contact_id = ${contactId}
         ${dateFilterPayment}
@@ -135,7 +138,8 @@ export async function getVendorLedgerData(
           CASE WHEN type = 'PAYMENT' THEN amount::float ELSE 0::float END as debit,
           CASE WHEN type = 'PURCHASE' THEN amount::float ELSE 0::float END as credit,
           created_at,
-          'vendor_transaction' AS "entryType"
+          'vendor_transaction' AS "entryType",
+          payment_status::text AS "paymentStatus"
         FROM vendor_transactions
         WHERE contact_id = ${contactId}
         ${dateFilterVendor}
@@ -150,6 +154,7 @@ export async function getVendorLedgerData(
           credit,
           created_at,
           "entryType",
+          "paymentStatus",
           ${openingBalance} + SUM(credit - debit) OVER (ORDER BY date, created_at, id) AS "runningBalance"
         FROM contractor_ledger
       )
@@ -171,6 +176,7 @@ export async function getVendorLedgerData(
           CASE WHEN type = 'PURCHASE' THEN amount ELSE 0 END AS credit,
           created_at,
           'vendor_transaction' AS "entryType",
+          payment_status::text AS "paymentStatus",
           ${openingBalance} + SUM(CASE WHEN type = 'PURCHASE' THEN amount ELSE -amount END)
             OVER (ORDER BY date, created_at, id) AS "runningBalance"
         FROM vendor_transactions
@@ -450,6 +456,7 @@ export async function getInventoryLedgerData(
         it.unit_cost as "unitCost",
         it.transfer_group_id as "transferGroupId",
         linked_project.name as "linkedProjectName",
+        vendor.name as "vendorName",
         it.created_at,
         ${openingQtyBalance} + SUM(CASE WHEN it.type IN ('BUY','RETURN','TRANSFER_IN') THEN it.quantity ELSE -it.quantity END)
           OVER (ORDER BY it.date, it.created_at, it.id) AS "runningQtyBalance",
@@ -461,6 +468,8 @@ export async function getInventoryLedgerData(
         AND linked_tx.id != it.id
       LEFT JOIN projects linked_project
         ON linked_project.id = linked_tx.project_id
+      LEFT JOIN contacts vendor
+        ON vendor.id = it.vendor_id
       WHERE it.project_id = ${projectId} AND it.item_id = ${itemId}
       ${dateFilter}
     )
@@ -497,6 +506,7 @@ export async function getInventoryLedgerData(
       unitCost,
       transferGroupId: row.transferGroupId,
       linkedProjectName: row.linkedProjectName,
+      vendorName: row.vendorName,
       runningQtyBalance: Number(row.runningQtyBalance),
       runningValueBalance: Number(row.runningValueBalance),
     };

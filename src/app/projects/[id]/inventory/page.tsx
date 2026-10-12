@@ -11,6 +11,12 @@ import { TransferStockSheet } from "./TransferStockSheet";
 import { LogTransactionSheet } from "./LogTransactionSheet";
 import { EditInventoryItemSheet } from "./EditInventoryItemSheet";
 import { EditInventoryTransactionSheet } from "./EditInventoryTransactionSheet";
+import {
+  usePagination,
+  PaginationControls,
+  SearchInput,
+  matchesSearch,
+} from "@/components/ui/pagination";
 import { InventoryMobileList } from "./InventoryMobileList";
 import { InventoryDesktopTable } from "./InventoryDesktopTable";
 
@@ -23,8 +29,10 @@ type InventoryBalance = {
   qtyReturned: number;
   qtyTransferredIn: number;
   qtyTransferredOut: number;
+  vendorNames?: string[];
   item: Item;
 };
+type VendorOption = { id: string; name: string; type: string };
 type ProjectOption = { id: string; name: string; status: string };
 
 // Shape returned by GET /api/projects/[id]/inventory/[itemId]/ledger — see
@@ -40,6 +48,7 @@ type InventoryLedgerRow = {
   unitCost: number;
   transferGroupId: string | null;
   linkedProjectName: string | null;
+  vendorName: string | null;
   runningQtyBalance: number;
   runningValueBalance: number;
 };
@@ -82,7 +91,22 @@ export default function ProjectInventoryPage({
   const { data: allProjectsData, loading: projectsLoading } =
     useApiResource<ProjectOption[]>("/api/projects");
 
+  const { data: contactsData } =
+    useApiResource<VendorOption[]>("/api/contacts");
+  const vendors = (contactsData || []).filter(
+    (c) => c.type === "VENDOR" || c.type === "SHOP",
+  );
+
   const inventory = inventoryData || [];
+  const [inventorySearch, setInventorySearch] = useState("");
+  const filteredInventory = inventory.filter((inv) =>
+    matchesSearch(inventorySearch, inv.item.name, inv.item.unit),
+  );
+  const inventoryPg = usePagination(
+    filteredInventory,
+    undefined,
+    inventorySearch,
+  );
   const items = itemsData || [];
   const projects = (allProjectsData || []).filter(
     (p) => p.id !== projectId && p.status === "ACTIVE",
@@ -186,6 +210,8 @@ export default function ProjectInventoryPage({
       unitCost: Number(itemCost || formData.get("unitCost")),
       date: formData.get("date"),
       note: formData.get("note") || undefined,
+      vendorId: formData.get("vendorId") || undefined,
+      paymentStatus: formData.get("paymentStatus") || undefined,
     };
 
     try {
@@ -341,6 +367,15 @@ export default function ProjectInventoryPage({
                 {row.linkedProjectName}
               </Badge>
             )}
+          {row.vendorName && (
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-amber-50 text-amber-800"
+              title={`Vendor: ${row.vendorName}`}
+            >
+              Vendor: {row.vendorName}
+            </Badge>
+          )}
         </div>
       ),
     }));
@@ -411,6 +446,7 @@ export default function ProjectInventoryPage({
             setItemCost={setItemCost}
             handleItemNameChange={handleItemNameChange}
             items={items}
+            vendors={vendors}
             handleLogTransaction={handleLogTransaction}
             mutating={logTransaction.mutating}
             disabled={!!selectedItem}
@@ -471,8 +507,14 @@ export default function ProjectInventoryPage({
         </div>
       ) : (
         <>
+          <SearchInput
+            value={inventorySearch}
+            onChange={setInventorySearch}
+            placeholder="Search items..."
+          />
+
           <InventoryMobileList
-            inventory={inventory}
+            inventory={inventoryPg.pageItems}
             loading={loading}
             onSelectItem={handleSelectItem}
             onEditItem={setEditingItem}
@@ -480,16 +522,25 @@ export default function ProjectInventoryPage({
           />
 
           <InventoryDesktopTable
-            inventory={inventory}
+            inventory={inventoryPg.pageItems}
             loading={loading}
             onSelectItem={handleSelectItem}
             onEditItem={setEditingItem}
             onDeleteItem={setDeleteTarget}
           />
+
+          <PaginationControls
+            page={inventoryPg.page}
+            totalPages={inventoryPg.totalPages}
+            total={inventoryPg.total}
+            onPageChange={inventoryPg.setPage}
+          />
         </>
       )}
 
       <EditInventoryItemSheet
+        projectId={projectId}
+        vendors={vendors}
         item={editingItem?.item || null}
         open={editingItem !== null}
         onOpenChange={(open) => !open && setEditingItem(null)}
@@ -510,6 +561,7 @@ export default function ProjectInventoryPage({
 
       <EditInventoryTransactionSheet
         projectId={projectId}
+        vendors={vendors}
         transactionId={editingTransactionId}
         open={editingTransactionId !== null}
         onOpenChange={(open) => !open && setEditingTransactionId(null)}
